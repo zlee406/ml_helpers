@@ -1,0 +1,7 @@
+__title__ = 'ml_helpers'
+__description__ = 'Helper functions to streamline ML workflows.'
+__url__ = 'http://github.com/zlee406/ml_helpers'
+__version__ = '0.0.1'
+__author__ = 'Zachary Lee'
+__author_email__ = 'zlee406@gmail.com'
+__license__ = 'MIT'
