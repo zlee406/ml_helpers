@@ -1,7 +1,0 @@
-README.md
-setup.py
-ml_helpers.egg-info/PKG-INFO
-ml_helpers.egg-info/SOURCES.txt
-ml_helpers.egg-info/dependency_links.txt
-ml_helpers.egg-info/requires.txt
-ml_helpers.egg-info/top_level.txt
