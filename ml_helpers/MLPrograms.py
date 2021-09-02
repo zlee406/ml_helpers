@@ -1,10 +1,9 @@
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 
-def series_to_supervised(data, n_in=1, n_out=1, dropnan=True,categories=False,auxcats=False):
 
-
+def series_to_supervised(data, n_in=1, n_out=1, dropnan=True, categories=False, auxcats=False):
     """
     Frame a time series as a supervised learning dataset.
     Arguments:
@@ -23,16 +22,16 @@ def series_to_supervised(data, n_in=1, n_out=1, dropnan=True,categories=False,au
     n_vars = 1 if type(data) is list else df.shape[1]
     cols, names = list(), list()
     # past sequence (t, t-1, ... t-n)
-    for i in range(n_in,0,-1):
+    for i in range(n_in, 0, -1):
         cols.append(df.shift(i))
         if i == 0:
             names += [(df.columns[j] + '(t)') for j in range(n_vars)]
         else:
             names += [(df.columns[j] + '(t-%d)' % (i)) for j in range(n_vars)]
     # forecast sequence (t, t+1, ... t+n)
-    for i in range(0,n_out):
+    for i in range(0, n_out):
         cols.append(df.shift(-i))
-        names += [(df.columns[j]+'(t+%d)' % (i)) for j in range(n_vars)]
+        names += [(df.columns[j] + '(t+%d)' % (i)) for j in range(n_vars)]
     # put it all together
     agg = pd.concat(cols, axis=1)
     agg.columns = names
@@ -42,9 +41,8 @@ def series_to_supervised(data, n_in=1, n_out=1, dropnan=True,categories=False,au
 
     return agg, n_vars
 
-def supervised_df_to_array(data, n_in=1, n_out=1, n_vars=6,y_var=[0], x_aux_var=[0],shuffle=False,normalize=False):
 
-
+def supervised_df_to_array(data, n_in=1, n_out=1, n_vars=6, y_var=[0], x_aux_var=[0], shuffle=False, normalize=False):
     """
     Separates An Autoregressed data frame into features and labels
     Arguments:
@@ -71,59 +69,69 @@ def supervised_df_to_array(data, n_in=1, n_out=1, n_vars=6,y_var=[0], x_aux_var=
     else:
         data_norm = data
 
-    x = np.array(data_norm.iloc[:, 0:n_in*n_vars])
+    x = np.array(data_norm.iloc[:, 0:n_in * n_vars])
     x = x.reshape((data_norm.shape[0], n_in, n_vars))
-    x = np.flip(x,axis=1)
+    x = np.flip(x, axis=1)
 
+    x_aux = np.array(data_norm.iloc[:, n_in * n_vars + x_aux_var[0]])
+    x_aux = x_aux.reshape((x.shape[0], -1, 1))
+    for i in range(1, n_out):
+        x_aux2 = np.array(data_norm.iloc[:, n_in * n_vars + x_aux_var[0] + n_vars * i]).reshape((x_aux.shape[0], -1, 1))
+        x_aux = np.concatenate((x_aux, x_aux2), axis=2)
+    for j in range(1, len(x_aux_var)):
+        for i in range(0, n_out):
+            x_aux2 = np.array(data_norm.iloc[:, n_in * n_vars + n_vars * i + x_aux_var[j]]).reshape(
+                (x_aux.shape[0], -1, 1))
+            x_aux = np.concatenate((x_aux, x_aux2), axis=2)
 
-    x_aux = np.array(data_norm.iloc[:,n_in*n_vars+x_aux_var[0]])
-    x_aux = x_aux.reshape((x.shape[0],-1,1))
-    for i in range(1,n_out):
-        x_aux2 = np.array(data_norm.iloc[:,n_in*n_vars+x_aux_var[0] + n_vars*i]).reshape((x_aux.shape[0],-1,1))
-        x_aux = np.concatenate((x_aux, x_aux2),axis=2)
-    for j in range(1,len(x_aux_var)):
-        for i in range(0,n_out):
-            x_aux2 = np.array(data_norm.iloc[:,n_in*n_vars + n_vars*i+x_aux_var[j]]).reshape((x_aux.shape[0],-1,1))
-            x_aux = np.concatenate((x_aux, x_aux2),axis=2)
+    y = np.array(data.iloc[:, n_in * n_vars + y_var[0]])
+    y = y.reshape((x.shape[0], -1, 1))
+    for i in range(1, n_out):
+        y2 = np.array(data.iloc[:, n_in * n_vars + y_var[0] + n_vars * i]).reshape((y.shape[0], -1, 1))
+        y = np.concatenate((y, y2), axis=2)
+    for j in range(1, len(y_var)):
+        for i in range(0, n_out):
+            y2 = np.array(data.iloc[:, n_in * n_vars + n_vars * i + y_var[j]]).reshape((y.shape[0], -1, 1))
+            y = np.concatenate((y, y2), axis=2)
 
-
-    y = np.array(data.iloc[:,n_in*n_vars+y_var[0]])
-    y = y.reshape((x.shape[0],-1,1))
-    for i in range(1,n_out):
-        y2 = np.array(data.iloc[:,n_in*n_vars+y_var[0] + n_vars*i]).reshape((y.shape[0],-1,1))
-        y = np.concatenate((y, y2),axis=2)
-    for j in range(1,len(y_var)):
-        for i in range(0,n_out):
-            y2 = np.array(data.iloc[:,n_in*n_vars + n_vars*i+y_var[j]]).reshape((y.shape[0],-1,1))
-            y = np.concatenate((y, y2),axis=2)
-
-    x_aux = x_aux.reshape((x_aux.shape[0],n_out,len(x_aux_var)),order='F')
-    y = y.reshape((y.shape[0],n_out,len(y_var)),order='F')
+    x_aux = x_aux.reshape((x_aux.shape[0], n_out, len(x_aux_var)), order='F')
+    y = y.reshape((y.shape[0], n_out, len(y_var)), order='F')
 
     return x, x_aux, y
 
 
+def batch_shuffle(array_list, shuffle_size=512):
+    shuffle_indexes = [np.arange(i, i + shuffle_size) for i in
+                       np.arange(0, array_list[0].shape[0], shuffle_size)]
+    shuffle_indexes = np.concatenate([shuffle_indexes[i] for i in
+                                      np.random.choice(range(len(shuffle_indexes) - 1),
+                                                       size=len(shuffle_indexes) - 1,
+                                                       replace=False)])
+    out_list = []
+    for array in array_list:
+        out_list.append(array[shuffle_indexes])
+    return out_list
+
 
 def plot_history(history):
-
     """
     Plots training progress, currently only valid for using mse as a metric
     :param history:
     :return plot of validation and training mean squared error:
     """
 
-    plt.figure(figsize=(7,5))
+    plt.figure(figsize=(7, 5))
     plt.xlabel('Epoch')
     plt.ylabel('Mean Squared Error (kWh)')
     nonval_mse = history.history['main_output_mean_squared_error']
-    last_nonval_mse = nonval_mse[len(nonval_mse)-1]
+    last_nonval_mse = nonval_mse[len(nonval_mse) - 1]
     val_mse = history.history['val_main_output_mean_squared_error']
-    last_val_mse = val_mse[len(val_mse)-1]
+    last_val_mse = val_mse[len(val_mse) - 1]
     plt.plot(history.epoch, history.history['main_output_mean_squared_error'],
              label='Train MSE')
     plt.plot(history.epoch, history.history['val_main_output_mean_squared_error'],
-             label = 'Val MSE')
+             label='Val MSE')
     plt.legend()
     plt.ylim([0, .5])
-    last_val_mse = val_mse[len(val_mse)-1]
-    plt.title('Bias: '+str(np.round(last_nonval_mse,3))+' / Var: '+str(np.round(last_val_mse,3)))
+    last_val_mse = val_mse[len(val_mse) - 1]
+    plt.title('Bias: ' + str(np.round(last_nonval_mse, 3)) + ' / Var: ' + str(np.round(last_val_mse, 3)))
